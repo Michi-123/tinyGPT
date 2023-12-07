@@ -196,31 +196,3 @@ class PrepareData:
             len(p[1].split(' ')) < self.max_length and \
             p[1].startswith(self.eng_prefixes)
 
-"""# Debug"""
-
-#@title 学習用データセット
-!wget https://www.manythings.org/anki/jpn-eng.zip -P data
-!unzip -o data/jpn-eng.zip -d data
-!mv data/jpn.txt data/eng-jpn.txt
-# テキストデータの読み込み
-rawdata = open('data/%s-%s.txt' % ("eng", "jpn"), encoding='utf-8')
-lines = rawdata.read().strip().split('\n')
-len(lines)
-
-# @title MeCab
-!pip install mecab-python3==1.0.8
-# MeCabの補足プログラム
-!pip install unidic-lite
-
-import MeCab
-tagger = MeCab.Tagger("-Owakati")
-
-prepareData = PrepareData(tagger)
-pairs = prepareData.translation_data()
-
-print(len(pairs))
-pairs[1000:1010]
-
-corpus = prepareData.gpt_data()
-corpus[:10]
-
