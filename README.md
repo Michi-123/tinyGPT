@@ -1,3 +1,3 @@
-The toyGPT is a toy program for understanding Generative Pre-trained Transformer.
+The toyGPT is a educational toy program for Udemy to understand Generative Pre-trained Transformer.
 This machine learning model learns from scratch with corpus.
 
