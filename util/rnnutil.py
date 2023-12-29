@@ -1,3 +1,4 @@
+#Debug
 # -*- coding: utf-8 -*-
 """RnnUtil.ipynb
 
@@ -10,46 +11,43 @@ from torch.utils.data import Dataset, DataLoader
 #@title RnnDataset
 class RnnDataset(Dataset):
     def __init__(self, corpus_path, max_sequence_length):
-        self.corpus = self.get_corpus(corpus_path)
+        self.corpus = self.read_corpus(corpus_path)
         self.max_sequence_length = max_sequence_length
-        self.source_vocab = self.build_vocab()
-        self.vocab = set([c for c in self.corpus])
-        self.word_to_index = {word: idx for idx, word in enumerate(self.vocab)}
-        self.index_to_word 
+
+        vocab = set([c for c in self.corpus]) # 一覧
+        self.word_to_index = {word: idx for idx, word in enumerate(vocab)}
+        self.index_to_word = {index: word for index, word in enumerate(vocab)}
+        
+        input_corpus, target_corpus = self.corpus_set()
+        self.input_corpus = input_corpus
+        self.target_corpus = target_corpus
+
+    def corpus_set(self):
+        seq_size = self.max_sequence_length
+        step = 1
+        input_corpus, target_corpus = [], []
+        # Convert the data into a series of different SEQLEN-length subsequences.
+        for i in range(0, len(self.corpus) - seq_size, step):
+            end_of_corpus = i + seq_size
+            input_corpus.append(self.corpus[i: end_of_corpus])
+            target_corpus.append(self.corpus[end_of_corpus]) #次の一文字
+        return input_corpus, target_corpus
 
     def __len__(self):
-        return len(self.corpus)
+        return len(self.input_corpus)
 
     def __getitem__(self, idx):
-        source_text = self.corpus[idx]
-        source_tokens = self.tokenize(source_text)
-        padded_source_tokens = self.pad_sequence(source_tokens, self.max_sequence_length)
-        source_indices = self.tokens_to_indices(padded_source_tokens, self.source_vocab)
+        source_indices = self.corpus_to_indices(self.input_corpus[idx], self.word_to_index)
+        target_indices = self.corpus_to_indices(self.target_corpus[idx], self.word_to_index)
         return {
             'source_indices': torch.tensor(source_indices),
+            'target_indices': torch.tensor(target_indices),
         }
 
-    def build_vocab(self):
-        source_tokens = [token for token in self.corpus]
-        source_unique_tokens = set(source_tokens + ['[PAD]'])  # [PAD] を追加
-        source_vocab = {token: idx for idx, token in enumerate(source_unique_tokens)}
-        return source_vocab
+    def corpus_to_indices(self, corpus, word_to_index):
+        return [word_to_index[letter] for letter in corpus]
 
-
-    def pad_sequence(self, tokens, max_length):
-        if len(tokens) < max_length:
-            padding = ['[PAD]'] * (max_length - len(tokens))
-            tokens += padding
-        else:
-            tokens = tokens[:max_length]
-        return tokens
-
-    def tokens_to_indices(self, tokens, vocab):
-        return [vocab[token] for token in tokens]
-
-
-
-    def get_corpus(self, corpus_path):
+    def read_corpus(self, corpus_path):
         with open(corpus_path, 'rb') as f:
             lines = []
             for line in f:
@@ -60,3 +58,9 @@ class RnnDataset(Dataset):
         corpus = " ".join(lines)
         return corpus
 
+    def indices_to_sequence(self, indices):
+        sequence = ''
+        for index in indices:
+            letter = self.index_to_word[index]
+            sequence += letter
+        return sequence
