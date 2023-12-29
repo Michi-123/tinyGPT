@@ -7,9 +7,8 @@ import torch
 from torch.utils.data import Dataset
 
 
-
 #@title RnnDataset
-class TextDataset(Dataset):
+class RnnDataset(Dataset):
     def __init__(self, corpus_path, max_sequence_length):
         self.corpus = get_corpus(corpus_path)
         self.max_sequence_length = max_sequence_length
@@ -31,8 +30,7 @@ class TextDataset(Dataset):
         }
 
     def build_vocab(self):
-        source_texts = self.corpus
-        source_tokens = [token for token in source_texts]
+        source_tokens = [token for token in self.corpus]
         source_unique_tokens = set(source_tokens + ['[PAD]'])  # [PAD] を追加
         source_vocab = {token: idx for idx, token in enumerate(source_unique_tokens)}
         return source_vocab
@@ -61,7 +59,4 @@ class TextDataset(Dataset):
                 lines.append(line)
         corpus = " ".join(lines)
         return corpus
-
-import re
-import unicodedata
 
