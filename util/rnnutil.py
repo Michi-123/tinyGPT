@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 #@title RnnDataset
 class RnnDataset(Dataset):
     def __init__(self, corpus_path, max_sequence_length):
-        self.corpus = get_corpus(corpus_path)
+        self.corpus = self.get_corpus(corpus_path)
         self.max_sequence_length = max_sequence_length
         self.source_vocab = self.build_vocab()
         self.vocab = set([c for c in self.corpus])
