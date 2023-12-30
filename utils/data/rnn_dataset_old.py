@@ -13,23 +13,25 @@ class RnnDataset(Dataset):
         self.corpus = self._read_corpus(corpus_path)
         self.sequence_length = sequence_length
 
-        chars = set([c for c in self.corpus])
+        chars = set([c for c in self.corpus]) # 一覧
         chars = sorted(chars)
         self.char2index = {char: idx for idx, char in enumerate(chars)}
-        self.index2char = {idx: char for idx, char in enumerate(chars)}
+        self.index2char = {index: char for index, char in enumerate(chars)}
         self.chars_size = len(chars)
-
-        self.input_corpus, self.label_corpus = self._corpus_set()
+        
+        input_corpus, label_corpus = self._corpus_set()
+        self.input_corpus = input_corpus
+        self.label_corpus = label_corpus
 
     def __len__(self):
         return len(self.input_corpus)
 
     def __getitem__(self, idx):
-        source_indices = self.input_corpus[idx]
-        target_index = self.label_corpus[idx]  # Note: It's a single index, not a list
+        source_indices = self._corpus_to_indices(self.input_corpus[idx], self.char2index)
+        target_indices = self._corpus_to_indices(self.label_corpus[idx], self.char2index)
 
-        source = torch.LongTensor(source_indices)  # Use LongTensor for indices
-        label = torch.LongTensor([target_index])  # Use LongTensor for a single index
+        source = torch.FloatTensor(source_indices)
+        label = torch.FloatTensor(target_indices)
         target = self._one_hot(label)
 
         return {
@@ -39,7 +41,7 @@ class RnnDataset(Dataset):
         }
 
     def _one_hot(self, label):
-        one_hot = F.one_hot(label, num_classes=self.chars_size)
+        one_hot = F.one_hot(label.long(), num_classes=self.chars_size)
         one_hot = one_hot.squeeze(0)
         return one_hot.float()
 
@@ -47,12 +49,11 @@ class RnnDataset(Dataset):
         seq_size = self.sequence_length
         step = 1
         input_corpus, label_corpus = [], []
+        # Convert the data into a series of different SEQLEN-length subsequences.
         for i in range(0, len(self.corpus) - seq_size, step):
             end_of_corpus = i + seq_size
-            input_seq = [self.char2index[c] for c in self.corpus[i: end_of_corpus]]
-            label = self.char2index[self.corpus[end_of_corpus]]  # Take the next character as a label
-            input_corpus.append(input_seq)
-            label_corpus.append(label)
+            input_corpus.append(self.corpus[i: end_of_corpus])
+            label_corpus.append(self.corpus[end_of_corpus]) #次の一文字
         return input_corpus, label_corpus
 
     def _read_corpus(self, corpus_path):
@@ -66,22 +67,21 @@ class RnnDataset(Dataset):
         corpus = " ".join(lines)
         return corpus
 
+    def _corpus_to_indices(self, corpus, char2index):
+        return [char2index[letter] for letter in corpus]
 
-if __name__ == '__main__':
+    def indices2sequence(self, indices):
+        sequence = ''
+        for index in indices:
+            letter = self.index2char[index]
+            sequence += letter
+        return sequence
 
-    # Example usage:
-    corpus_path = "/content/tinyGPT/corpus/Alice's_Adventures_in_Wonderland.txt"
-    sequence_length = 10
-
-    dataset = RnnDataset(corpus_path, sequence_length)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-
-    for batch in dataloader:
-        source = batch['source']
-        label = batch['label']
-        target = batch['target']
-        print("Source Shape:", source.shape)
-        print("Label Shape:", label.shape)
-        print("Target Shape:", target.shape)
-        break
-
+    def sequence2indices(self, sequence):
+        sequence = sequence[:self.sequence_length]
+        sequence = sequence.lower()
+        indices = []
+        for char in sequence:
+            index = self.char2index[char]
+            indices.append(index)
+        return indices
