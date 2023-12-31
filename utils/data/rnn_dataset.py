@@ -66,7 +66,23 @@ class RnnDataset(Dataset):
         corpus = " ".join(lines)
         return corpus
 
+    def indices2sequence(self, indices):
+        sequence = ''
+        for index in indices:
+            letter = self.index2char[index]
+            sequence += letter
+        return sequence
 
+    def sequence2indices(self, sequence):
+        sequence = sequence[:self.sequence_length]
+        sequence = sequence.lower()
+        indices = []
+        for char in sequence:
+            index = self.char2index[char]
+            indices.append(index)
+        return indices
+        
+        
 if __name__ == '__main__':
 
     # Example usage:
